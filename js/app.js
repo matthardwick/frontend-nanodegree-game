@@ -1,29 +1,15 @@
-// var characters = document.getElementsByClassName('character');
-//
-//
-// for(var i = 0; i < characters.length; i++) {
-//   characters[i].addEventListener('click', function() {
-//     for(var i = 0; i < characters.length; i++) {
-//       characters[i].classList.remove('selected');
-//     }
-//     this.classList.add('selected');
-//   });
-// }
-//
-// var selected = document.getElementsByClassName('selected');
-
 // Enemies our player must avoid
-var Enemy = function(x, y, speed) {
+var Enemy = function() {
     // Variables applied to each of our instances go here,
     // we've provided one for you to get started
-    this.x = x;
-    this.y = y;
-    this.speed = speed;
+    this.x = Math.random() * 505;
+    this.y = 63 + (Math.round(Math.random() * 2) * 83);
+    this.speed = (Math.random() * 150) + 75;
 
     // The image/sprite for our enemies, this uses
     // a helper we've provided to easily load images
     this.sprite = 'images/enemy-bug.png';
-};
+}
 
 // Update the enemy's position, required method for game
 // Parameter: dt, a time delta between ticks
@@ -31,138 +17,89 @@ Enemy.prototype.update = function(dt) {
     // You should multiply any movement by the dt parameter
     // which will ensure the game runs at the same speed for
     // all computers.
-    this.x += this.speed*dt;
+    this.x += this.speed * dt;
 
-    // make enemies loop to left side of canvas after reaching canvas.width
-    if (this.x >= 505) {
-      this.x = 0;
-  }
-
-  // Check for collision with enemies or barrier-walls
-  checkCollision(this);
-};
+    //If enemy is off screen, rest to beginning and randomly start
+    //on a row of stone blocks.
+    if( this.x >= 505) {
+        this.y = 63 + (Math.round(Math.random() * 2) * 83);
+        this.x = -150;
+    }
+}
 
 // Draw the enemy on the screen, required method for game
 Enemy.prototype.render = function() {
     ctx.drawImage(Resources.get(this.sprite), this.x, this.y);
-};
+}
 
 // Now write your own player class
 // This class requires an update(), render() and
 // a handleInput() method.
-var Player = function(x, y, speed) {
-    this.x = x;
-    this.y = y;
-    this.speed = speed;
-    this.sprite = 'images/char-boy.png';
-};
-
-Player.prototype.update = function() {
-    // function not needed right now
+var Player = function() {
+    this.x = 202;
+    this.y = 404;
+    this.score = 0;
+    this.sprite = "images/char-boy.png";
 }
 
+// Update player depending if touched by an enemy or reaches the water.
+Player.prototype.update = function() {
+    // Check if player has been hit by any enemy and updates score. Resets if true.
+    for(var bug in allEnemies) {
+        if(this.x < allEnemies[bug].x + 90 && this.x + 65 > allEnemies[bug].x + 2
+          && this.y + 135 > allEnemies[bug].y + 142 && this.y + 65 < allEnemies[bug].y + 79) {
+            this.score -= 1;
+            this.x = 202;
+            this.y = 404;
+        }
+    }
+
+    // Check to see if player made it to the water then update scrore and reset.
+    if(this.y <= 0) {
+        this.score += 1;
+        this.x = 202;
+        this.y = 404;
+    }
+
+    // Display Score
+    ctx.clearRect(0, 0, 250, 43);
+    ctx.fillStyle = 'black';
+    ctx.font = '30px Arial';
+    ctx.fillText("Score: " + this.score, 0, 40);
+}
+
+// Draw the player on the screen, required method for game
 Player.prototype.render = function() {
     ctx.drawImage(Resources.get(this.sprite), this.x, this.y);
-    displayScoreLevel(score, gameLevel);
+}
 
-};
-
-Player.prototype.handleInput = function(keyPress) {
-    if (keyPress == 'left') {
+// Move player depending on input from user.
+Player.prototype.handleInput = function(direction) {
+    if(direction == 'left' && this.x - 101 >= 0)
         this.x -= 101;
-    }
-    if (keyPress == 'up') {
+    if(direction == 'up' && this.y - 83 >= -11)
         this.y -= 83;
-    }
-    if (keyPress == 'right') {
+    if(direction == 'right' && this.x + 101 < 505)
         this.x += 101;
-    }
-    if (keyPress == 'down') {
+    if(direction == 'down' && this.y + 83 < 487)
         this.y += 83;
-    }
-};
+}
 
-// Function to display player's score
-var displayScoreLevel = function(aScore, aLevel) {
-    var canvas = document.getElementsByTagName('canvas');
-    var firstCanvasTag = canvas[0];
-
-    // add player score and level to div element created
-    scoreLevelDiv.innerHTML = 'Score: ' + aScore
-        + ' / ' + 'Level: ' + aLevel;
-    document.body.insertBefore(scoreLevelDiv, firstCanvasTag[0]);
-};
-
-var checkCollision = function(anEnemy) {
-    // check for collision between enemy and player
-    if (
-        player.y + 131 >= anEnemy.y + 90
-        && player.x + 25 <= anEnemy.x + 88
-        && player.y + 73 <= anEnemy.y + 135
-        && player.x + 76 >= anEnemy.x + 11) {
-        console.log('collided');
-        player.x = 202.5;
-        player.y = 383;
-    }
-
-    // check for player reaching top of canvas and winning the game
-    // if player wins, add 1 to the score and level
-    // pass score as an argument to the increaseDifficulty function
-    if (player.y + 63 <= 0) {
-        player.x = 202.5;
-        player.y = 383;
-
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, 505, 171);
-
-        score += 1;
-        gameLevel += 1;
-        increaseDifficulty(score);
-
-    }
-
-    // check if player runs into left, bottom, or right canvas walls
-    // prevent player from moving beyond canvas wall boundaries
-    if (player.y > 383 ) {
-        player.y = 383;
-    }
-    if (player.x > 402.5) {
-        player.x = 402.5;
-    }
-    if (player.x < 2.5) {
-        player.x = 2.5;
-    }
-};
-
-// Increase number of enemies on screen based on player's score
-var increaseDifficulty = function(numEnemies) {
-    // remove all previous enemies on canvas
-    allEnemies.length = 0;
-
-    // load new set of enemies
-    for (var i = 0; i <= numEnemies; i++) {
-        var enemy = new Enemy(0, Math.random() * 184 + 50, Math.random() * 256);
-
-        allEnemies.push(enemy);
-    }
-};
 
 // Now instantiate your objects.
 // Place all enemy objects in an array called allEnemies
 // Place the player object in a variable called player
 
+// Create all enemies for game.
 var allEnemies = [];
-var player = new Player(202.5, 383, 50);
-var score = 0;
-var gameLevel = 1;
-var scoreLevelDiv = document.createElement('div');
-var enemy = new Enemy(0, Math.random() * 184 + 50, Math.random() * 256);
 
-allEnemies.push(enemy);
+for (var index = 0; index < 6; index++) {
+    var enemyObj = new Enemy();
+    allEnemies.push(enemyObj);
+};
 
-
-
-
+//Create player.
+var player = new Player();
 
 // This listens for key presses and sends the keys to your
 // Player.handleInput() method. You don't need to modify this.
